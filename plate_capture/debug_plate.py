@@ -5,8 +5,19 @@
 #   f = force OCR on full frame (bypass contour detection)
 #   q = quit
 
-import os, logging
+import os, logging, sys
+
+def get_app_base_dir() -> str:
+    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+        return sys._MEIPASS
+    return os.path.dirname(os.path.abspath(__file__))
+
+APP_DIR = get_app_base_dir()
+RUN_DIR = os.path.dirname(os.path.abspath(sys.executable)) if getattr(sys, "frozen", False) else APP_DIR
+
 os.environ["PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK"] = "True"
+os.environ.setdefault("PADDLE_PDX_CACHE_HOME", os.path.join(RUN_DIR, ".paddlex"))
+os.makedirs(os.environ["PADDLE_PDX_CACHE_HOME"], exist_ok=True)
 logging.disable(logging.WARNING)
 
 import cv2
@@ -17,7 +28,7 @@ from paddleocr import PaddleOCR
 
 import configparser
 config = configparser.ConfigParser()
-config.read("config.ini")
+config.read(os.path.join(APP_DIR, "config.ini"))
 
 entry_camera_url = config.get("Cameras", "entry_camera_url")
 try:
@@ -25,11 +36,22 @@ try:
 except ValueError:
     pass
 
+def create_ocr_engine():
+    try:
+        return PaddleOCR(use_textline_orientation=True, lang='en')
+    except (TypeError, ValueError):
+        return PaddleOCR(use_angle_cls=True, lang='en', show_log=False)
+
 print("[DEBUG] Loading OCR engine...")
-ocr = PaddleOCR(use_angle_cls=True, lang='en', show_log=False)
+ocr = create_ocr_engine()
 print("[DEBUG] OCR engine ready.")
 
-cap = cv2.VideoCapture(entry_camera_url)
+if isinstance(entry_camera_url, int) and sys.platform.startswith("win"):
+    cap = cv2.VideoCapture(entry_camera_url, cv2.CAP_DSHOW)
+elif isinstance(entry_camera_url, int) and sys.platform == "darwin":
+    cap = cv2.VideoCapture(entry_camera_url, cv2.CAP_AVFOUNDATION)
+else:
+    cap = cv2.VideoCapture(entry_camera_url)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH,  int(config.get("General", "camera_width")))
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, int(config.get("General", "camera_height")))
 

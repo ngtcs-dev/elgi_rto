@@ -1,6 +1,8 @@
 # main.py  — PaddleOCR 2.7.3  (state-code validated, vote-to-confirm)
 import os, logging
 os.environ["PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK"] = "True"
+os.environ.setdefault("PADDLE_PDX_CACHE_HOME", os.path.abspath(".paddlex"))
+os.makedirs(os.environ["PADDLE_PDX_CACHE_HOME"], exist_ok=True)
 logging.disable(logging.WARNING)
 
 import cv2, threading, time, queue, re, configparser, socket, json, base64
@@ -38,7 +40,13 @@ REQUIRED_HITS    = int(config.get("Detection", "required_hits"))
 OCR_INTERVAL_SECONDS = 3   # scan every N seconds regardless of motion
 
 # ── INIT ──────────────────────────────────────────────────────────────────────
-ocr_engine        = PaddleOCR(use_angle_cls=True, lang='en', show_log=False)
+def create_ocr_engine():
+    try:
+        return PaddleOCR(use_textline_orientation=True, lang='en')
+    except (TypeError, ValueError):
+        return PaddleOCR(use_angle_cls=True, lang='en', show_log=False)
+
+ocr_engine        = create_ocr_engine()
 plate_saver       = PlateSaver(captures_dir=CAPTURES_DIR, cooldown_seconds=COOLDOWN_SECONDS)
 connected_clients = []
 detection_lock    = threading.Lock()

@@ -28,8 +28,6 @@ class PlateSaver:
             return None
 
         now           = datetime.now()
-        # timestamp_str = now.strftime("%Y-%m-%d_%H-%M-%S")
-        # filename      = f"{plate_number}_{camera_name}_{timestamp_str}.jpg"
         filename = f"{plate_number}.jpg"
         filepath      = os.path.join(self.captures_dir, filename)
 

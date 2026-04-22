@@ -5,7 +5,7 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[('config.ini', '.'), ('plate_saver.py', '.')],
+    datas=[('config.ini', '.')],
     hiddenimports=['paddleocr', 'paddle'],
     hookspath=[],
     hooksconfig={},
