@@ -429,12 +429,34 @@ def detect_worker(fq: queue.Queue, camera_name: str, shared: dict):
                     core_hits[core] = 0
                     continue
 
-                saved = plate_saver.save(frame=frame, plate_number=best,
+                # ── CROP PLATE REGION WITH PADDING ──────────────────────────
+                boxes = shared.get('last_boxes', [])
+                save_frame = frame
+                if boxes:
+                    h_img, w_img = frame.shape[:2]
+                    all_pts = []
+                    for box, text, conf in boxes:
+                        all_pts.extend(box)
+                    all_pts = np.array(all_pts, dtype=np.int32)
+                    x1, y1 = all_pts[:, 0].min(), all_pts[:, 1].min()
+                    x2, y2 = all_pts[:, 0].max(), all_pts[:, 1].max()
+
+                    # Add padding (~40% of box size on each side)
+                    pad_x = int((x2 - x1) * 0.4)
+                    pad_y = int((y2 - y1) * 0.4)
+                    x1 = max(0, x1 - pad_x)
+                    y1 = max(0, y1 - pad_y)
+                    x2 = min(w_img, x2 + pad_x)
+                    y2 = min(h_img, y2 + pad_y)
+
+                    save_frame = frame[y1:y2, x1:x2]
+
+                saved = plate_saver.save(frame=save_frame, plate_number=best,
                                          camera_name=camera_name)
                 if saved:
                     print(f"[{camera_name}] ✅ SAVED: {best}  →  {saved}")
                     saved_cores.add(core)
-                    img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+                    img = Image.fromarray(cv2.cvtColor(save_frame, cv2.COLOR_BGR2RGB))
                     buf = BytesIO()
                     img.save(buf, format="JPEG")
                     b64 = base64.b64encode(buf.getvalue()).decode()
