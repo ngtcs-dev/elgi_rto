@@ -1,0 +1,8 @@
+plate_capture/__pycache__/
+plate_capture/build/
+plate_capture/build_env/
+plate_capture/venv/
+plate_capture/dist/
+.venv/
+venv/
+.idea/
